@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: portfolio-dashboard
+    runtime: python
+    plan: free
+    # 1 worker pour rester sous les 512 Mo de RAM du tier gratuit + partager le cache fichier.
+    # threads pour gérer les appels lents (yfinance / FRED). timeout élevé pour le 1er chargement.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:server --workers 1 --threads 8 --timeout 180 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: FRED_API_KEY
+        sync: false          # à renseigner dans le dashboard Render (Secret)
+      - key: FMP_API_KEY
+        sync: false          # optionnel — uniquement pour Portfolio_functions / fondamentaux
