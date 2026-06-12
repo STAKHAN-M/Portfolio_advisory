@@ -222,8 +222,13 @@ def build_layout():
                 # KPI Row
                 html.Div(id="kpi-row", className="kpi-row"),
 
-                # Tabs
-                dcc.Tabs(id="main-tabs", value="tab-overview", className="main-tabs", children=[
+                # Tabs (verticaux — barre latérale gauche)
+                dcc.Tabs(id="main-tabs", value="tab-overview",
+                         vertical=True,
+                         parent_className="main-tabs-parent",
+                         className="main-tabs",
+                         content_className="main-tabs-content",
+                         children=[
 
                 dcc.Tab(label="Vue d'ensemble", value="tab-overview", className="main-tab", selected_className="main-tab--selected", children=[
 

@@ -232,38 +232,66 @@ body {
 .badge-negative { background: var(--red-bg);   color: var(--red);   }
 .badge-neutral  { background: rgba(91,116,144,0.08); color: var(--text-sec); }
 
-/* ─── Tabs ───────────────────────────────────────────────────────────────── */
+/* ─── Tabs — barre latérale verticale (gauche) ───────────────────────────── */
+.main-tabs-parent {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+}
+
 .main-tabs {
     display: flex !important;
-    border-bottom: 1px solid var(--border) !important;
+    flex-direction: column !important;
+    border-bottom: none !important;
+    border-right: 1px solid var(--border) !important;
     background: transparent !important;
-    padding: 0 !important;
-    margin-bottom: 20px;
-    gap: 0 !important;
+    padding: 0 12px 0 0 !important;
+    margin: 0 20px 0 0 !important;
+    gap: 4px !important;
+    flex: 0 0 200px;
+    width: 200px;
+    position: sticky;
+    top: 16px;
+    align-self: flex-start;
 }
 
 .main-tab {
     background: transparent !important;
     border: none !important;
-    border-bottom: 1px solid transparent !important;
+    border-left: 2px solid transparent !important;
+    border-radius: 6px !important;
     color: var(--text-muted) !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 10.5px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1px !important;
-    padding: 11px 22px 10px !important;
+    letter-spacing: 0.8px !important;
+    text-align: left !important;
+    padding: 12px 14px !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
     cursor: pointer;
-    transition: color 0.15s ease, border-color 0.15s ease !important;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease !important;
 }
 
-.main-tab:hover { color: var(--text-sec) !important; }
+.main-tab:hover {
+    color: var(--text-sec) !important;
+    background: rgba(255,255,255,0.02) !important;
+}
 
 .main-tab--selected {
-    background: transparent !important;
+    background: rgba(196,162,74,0.07) !important;
     border: none !important;
-    border-bottom: 1px solid var(--gold) !important;
+    border-left: 2px solid var(--gold) !important;
+    border-radius: 6px !important;
     color: var(--gold) !important;
+}
+
+/* Zone de contenu à droite de la barre latérale */
+.main-tabs-content {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
 }
 
 /* ─── Cards ──────────────────────────────────────────────────────────────── */
@@ -603,6 +631,27 @@ body {
     .grid-70-30,
     .grid-60-40,
     .grid-50-50 { grid-template-columns: 1fr; }
+}
+
+/* Barre latérale → barre horizontale sur écran étroit */
+@media (max-width: 1000px) {
+    .main-tabs-parent { flex-direction: column !important; }
+    .main-tabs {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+        padding: 0 0 8px 0 !important;
+        margin: 0 0 16px 0 !important;
+        position: static !important;
+    }
+    .main-tab { border-left: none !important; border-bottom: 2px solid transparent !important; }
+    .main-tab--selected {
+        border-left: none !important;
+        border-bottom: 2px solid var(--gold) !important;
+    }
 }
 
 @media (max-width: 768px) {
