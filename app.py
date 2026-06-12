@@ -54,8 +54,10 @@ server = app.server
 # ─── Color Palette ────────────────────────────────────────────────────────────
 
 PALETTE = [
-    "#c4a24a", "#00c896", "#f04f6a", "#1a2d4a", "#0d1e35",
-    "#1e3a5f", "#2a4f7c", "#5b7490", "#8ba8c4", "#dde6f0",
+    "#c4a24a", "#00c896", "#3d8fd1", "#f04f6a", "#f59e0b",
+    "#a78bfa", "#2dd4bf", "#fb923c", "#60a5fa", "#e879a6",
+    "#84cc16", "#22d3ee", "#f472b6", "#facc15", "#4ade80",
+    "#818cf8", "#fb7185", "#38bdf8", "#c084fc", "#fbbf24",
 ]
 
 def hex_rgba(hex_color, alpha):
@@ -258,7 +260,7 @@ def build_layout():
                             ], className="card-header"),
                             html.Div([
                                 dcc.Graph(id="pie-allocation", config={"displayModeBar": False},
-                                          style={"height": "240px"}),
+                                          style={"height": "320px"}),
                             ], className="card-body"),
                         ], className="card"),
 
@@ -934,40 +936,55 @@ def update_pie(data):
     positions_df = pd.DataFrame(d["positions"])
     cash = d.get("summary", {}).get("cash_balance", 0)
 
+    # Tri par valeur décroissante pour un rendu propre
+    positions_df = positions_df.sort_values("Valeur (€)", ascending=False)
     labels = list(positions_df["Ticker"])
-    values = list(positions_df["Valeur (€)"])
-    colors = list(PALETTE[:len(positions_df)])
+    values = [float(v) for v in positions_df["Valeur (€)"]]
 
     if cash and cash > 0:
         labels.append("Cash")
-        values.append(cash)
-        colors.append("#64748b")
+        values.append(float(cash))
+
+    # Couleurs cyclées (assez pour tous les titres) ; Cash en gris
+    colors = [PALETTE[i % len(PALETTE)] for i in range(len(labels))]
+    if cash and cash > 0:
+        colors[-1] = "#64748b"
+
+    total = sum(values) or 1
+    # N'afficher le texte que sur les parts assez grandes (≥ 3,5 %) pour éviter le fouillis
+    pcts = [v / total * 100 for v in values]
+    slice_text = [f"{lbl} {p:.0f}%" if p >= 3.5 else "" for lbl, p in zip(labels, pcts)]
 
     fig = go.Figure(go.Pie(
         labels=labels,
         values=values,
-        hole=0.55,
-        textinfo="label+percent",
-        textfont=dict(size=10, family="Inter", color="#ffffff"),
+        hole=0.62,
+        sort=False,
+        direction="clockwise",
+        text=slice_text,
+        textinfo="text",
+        textposition="inside",
+        insidetextorientation="horizontal",
+        textfont=dict(size=11, family="Inter", color="#ffffff"),
         marker=dict(
             colors=colors,
-            line=dict(color="#ffffff", width=2),
+            line=dict(color="#0a1322", width=1.5),
         ),
-        hovertemplate="<b>%{label}</b><br>%{value:.2f} €<br>%{percent}<extra></extra>",
+        hovertemplate="<b>%{label}</b><br>%{value:,.0f} €<br>%{percent}<extra></extra>",
     ))
 
-    total = sum(values)
     fig.update_layout(
         **{k: v for k, v in CHART_LAYOUT.items() if k not in ("margin", "legend")},
         showlegend=True,
         legend=dict(
-            orientation="v", x=1.0, y=0.5,
-            font=dict(size=10), xanchor="left",
+            orientation="v", x=1.02, y=0.5, yanchor="middle", xanchor="left",
+            font=dict(size=10, color="#8ba8c4"),
+            itemclick="toggleothers",
         ),
-        margin=dict(l=10, r=120, t=20, b=10),
+        margin=dict(l=8, r=96, t=14, b=14),
         annotations=[dict(
-            text=f"<b>{total:,.0f} €</b>".replace(",", " "),
-            x=0.5, y=0.5, font_size=13, showarrow=False,
+            text=f"<b>{total:,.0f} €</b><br><span style='font-size:9px;color:#64748b'>TOTAL</span>".replace(",", " "),
+            x=0.5, y=0.5, font_size=15, showarrow=False,
             font=dict(family="Inter", color="#E8EFF8"),
         )],
     )
