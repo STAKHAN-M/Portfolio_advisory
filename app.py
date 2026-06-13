@@ -584,6 +584,36 @@ def build_layout():
                     ], style={"marginTop": "14px"}),
                 ]),  # end tab-performance
 
+                # ── Tab: Historique du Portefeuille ───────────────────────
+                dcc.Tab(label="Historique du Portefeuille", value="tab-history",
+                        className="main-tab", selected_className="main-tab--selected",
+                        children=[
+                    html.Div([
+                        html.Div(id="hist-summary", style={"marginBottom": "14px"}),
+                        html.Div([
+                            html.Div([
+                                html.Span("Positions Clôturées — Gains & Pertes Réalisés",
+                                          className="card-title"),
+                                html.Span("P&L réalisé à la revente (coût moyen) — positions entièrement vendues",
+                                          style={"fontSize": "10px", "color": "#94a3b8"}),
+                            ], className="card-header"),
+                            html.Div([
+                                dcc.Graph(id="hist-closed-chart", config={"displayModeBar": False}),
+                            ], className="card-body"),
+                        ], className="card"),
+                        html.Div([
+                            html.Div([
+                                html.Span("Dividendes Perçus par Titre", className="card-title"),
+                                html.Span("Cumul des dividendes encaissés (titres détenus et clôturés)",
+                                          style={"fontSize": "10px", "color": "#94a3b8"}),
+                            ], className="card-header"),
+                            html.Div([
+                                dcc.Graph(id="hist-dividends-chart", config={"displayModeBar": False}),
+                            ], className="card-body"),
+                        ], className="card"),
+                    ], style={"marginTop": "14px"}),
+                ]),  # end tab-history
+
                 # ── Tab 4: Macroéconomie ──────────────────────────────────
                 dcc.Tab(label="Macroéconomie", value="tab-macro", className="main-tab", selected_className="main-tab--selected", children=[
                     html.Div([
@@ -2137,6 +2167,106 @@ def pc_update_new(buy_price, qty, funding, current_price, data_json):
     except Exception as e:
         print(f"[pc] new-ticker error: {e}")
         return []
+
+
+# ═══ Onglet : Historique du Portefeuille ══════════════════════════════════════
+
+@app.callback(
+    Output("hist-summary", "children"),
+    Output("hist-closed-chart", "figure"),
+    Output("hist-dividends-chart", "figure"),
+    Input("store-data", "data"),
+)
+def update_history(raw_data):
+    empty = go.Figure()
+    empty.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    if not raw_data:
+        return [], empty, empty
+    try:
+        data = json.loads(raw_data)
+        df = pd.read_json(io.StringIO(data["df"]), orient="records")
+        closed, dividends = engine.compute_realized_and_dividends(df)
+
+        # ── Bandeau récap ────────────────────────────────────────────────────
+        tot_realized = sum(c["realized"] for c in closed)
+        winners = [c for c in closed if c["realized"] > 0]
+        losers  = [c for c in closed if c["realized"] < 0]
+        tot_div = sum(d["dividends"] for d in dividends)
+
+        def _kpi(lbl, val, color="#E8EFF8"):
+            return html.Div([
+                html.Div(lbl, style={"fontSize": "9px", "color": "#64748b",
+                                     "textTransform": "uppercase", "letterSpacing": "1px"}),
+                html.Div(val, style={"fontSize": "20px", "fontWeight": "700", "color": color}),
+            ], style={"flex": "1", "minWidth": "150px", "padding": "12px 16px"})
+
+        rc = "#00c896" if tot_realized >= 0 else "#f04f6a"
+        summary = html.Div([
+            html.Div([
+                _kpi("P&L réalisé total", fmt_eur(tot_realized), rc),
+                _kpi("Positions clôturées", str(len(closed))),
+                _kpi("Gagnantes / Perdantes",
+                     f"{len(winners)} / {len(losers)}", "#94a3b8"),
+                _kpi("Dividendes cumulés", fmt_eur(tot_div), "#c4a24a"),
+            ], style={"display": "flex", "gap": "12px", "flexWrap": "wrap", "padding": "6px"}),
+        ], className="card")
+
+        # ── Graphique 1 : P&L réalisé des positions clôturées ────────────────
+        fig_closed = go.Figure()
+        if closed:
+            cs = sorted(closed, key=lambda c: c["realized"])  # croissant → pires en bas
+            tickers = [c["ticker"] for c in cs]
+            vals = [c["realized"] for c in cs]
+            colors = ["#00c896" if v >= 0 else "#f04f6a" for v in vals]
+            fig_closed.add_trace(go.Bar(
+                x=vals, y=tickers, orientation="h",
+                marker=dict(color=colors),
+                text=[fmt_eur(v) for v in vals], textposition="auto",
+                customdata=[[fmt_eur(c["proceeds"]), fmt_eur(c["buy_cost"]),
+                             fmt_eur(c["dividends"])] for c in cs],
+                hovertemplate="<b>%{y}</b><br>P&L réalisé : %{x:,.2f} €"
+                              "<br>Vente : %{customdata[0]} · Achat : %{customdata[1]}"
+                              "<br>Dividendes perçus : %{customdata[2]}<extra></extra>",
+            ))
+            fig_closed.add_vline(x=0, line_color="rgba(255,255,255,0.3)", line_width=1)
+        else:
+            fig_closed.add_annotation(text="Aucune position clôturée",
+                                      xref="paper", yref="paper", x=0.5, y=0.5,
+                                      showarrow=False, font=dict(color="#64748b", size=13))
+        fig_closed.update_layout(
+            **{k: v for k, v in CHART_LAYOUT.items() if k not in ("margin", "legend")},
+            height=max(280, 26 * len(closed) + 60),
+            margin=dict(l=8, r=16, t=8, b=24),
+            xaxis_ticksuffix=" €", showlegend=False,
+        )
+
+        # ── Graphique 2 : dividendes par titre ───────────────────────────────
+        fig_div = go.Figure()
+        if dividends:
+            ds = sorted(dividends, key=lambda d: d["dividends"])  # croissant → plus gros en haut
+            fig_div.add_trace(go.Bar(
+                x=[d["dividends"] for d in ds],
+                y=[d["ticker"] for d in ds], orientation="h",
+                marker=dict(color="#c4a24a"),
+                text=[fmt_eur(d["dividends"]) for d in ds], textposition="auto",
+                hovertemplate="<b>%{y}</b><br>Dividendes : %{x:,.2f} €<extra></extra>",
+            ))
+        else:
+            fig_div.add_annotation(text="Aucun dividende enregistré",
+                                   xref="paper", yref="paper", x=0.5, y=0.5,
+                                   showarrow=False, font=dict(color="#64748b", size=13))
+        fig_div.update_layout(
+            **{k: v for k, v in CHART_LAYOUT.items() if k not in ("margin", "legend")},
+            height=max(280, 26 * len(dividends) + 60),
+            margin=dict(l=8, r=16, t=8, b=24),
+            xaxis_ticksuffix=" €", showlegend=False,
+        )
+
+        return summary, fig_closed, fig_div
+    except Exception:
+        import traceback; traceback.print_exc()
+        return html.Div("Erreur de rendu de l'historique.",
+                        style={"color": "#f04f6a", "padding": "16px"}), empty, empty
 
 
 # ─── Macro: fetch & store ─────────────────────────────────────────────────────

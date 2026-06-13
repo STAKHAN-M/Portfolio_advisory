@@ -109,6 +109,65 @@ def parse_transactions(df: pd.DataFrame) -> dict:
     return {t: p for t, p in positions.items() if p["qty"] > 0.001}
 
 
+def compute_realized_and_dividends(df: pd.DataFrame) -> tuple:
+    """
+    Calcule, par titre :
+      - le P&L réalisé (méthode du coût moyen) sur les ventes,
+      - les dividendes perçus.
+    Retourne (closed, dividends) :
+      closed = liste de dicts pour les positions CLÔTURÉES (qté finale ≈ 0, au moins 1 vente)
+      dividends = liste de dicts {ticker, dividends} triée décroissante.
+    """
+    df = df.copy()
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values("Date")
+
+    state = {}
+    for _, row in df.iterrows():
+        t = row["Ticker"]
+        if pd.isna(t):
+            continue
+        typ = str(row["Type"]).strip().capitalize()
+        s = state.setdefault(t, {"qty": 0.0, "cost": 0.0, "realized": 0.0,
+                                 "dividends": 0.0, "n_sells": 0,
+                                 "buy_cost": 0.0, "proceeds": 0.0})
+        if typ == "Achat":
+            qty = float(row["Quantite"]); cost = abs(float(row["Cash_Flow"]))
+            s["qty"] += qty; s["cost"] += cost; s["buy_cost"] += cost
+        elif typ == "Vente":
+            qty = float(row["Quantite"]); proceeds = abs(float(row["Cash_Flow"]))
+            if s["qty"] > 0:
+                avg = s["cost"] / s["qty"]
+                sold = min(qty, s["qty"])
+                cost_sold = avg * sold
+                s["realized"] += proceeds - cost_sold
+                s["cost"] = max(0.0, s["cost"] - cost_sold)
+                s["qty"] = max(0.0, s["qty"] - qty)
+            s["proceeds"] += proceeds
+            s["n_sells"] += 1
+        elif typ == "Dividende":
+            s["dividends"] += float(row["Cash_Flow"])
+
+    closed = []
+    for t, s in state.items():
+        if s["n_sells"] > 0 and s["qty"] <= 0.001:
+            closed.append({
+                "ticker": t,
+                "realized": round(s["realized"], 2),
+                "proceeds": round(s["proceeds"], 2),
+                "buy_cost": round(s["buy_cost"], 2),
+                "dividends": round(s["dividends"], 2),
+                "total": round(s["realized"] + s["dividends"], 2),
+            })
+    closed.sort(key=lambda x: x["realized"], reverse=True)
+
+    dividends = [{"ticker": t, "dividends": round(s["dividends"], 2)}
+                 for t, s in state.items() if s["dividends"] > 0.001]
+    dividends.sort(key=lambda x: x["dividends"], reverse=True)
+
+    return closed, dividends
+
+
 # ─── Price Fetching ───────────────────────────────────────────────────────────
 
 def fetch_current_prices(tickers: list) -> pd.Series:
