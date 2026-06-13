@@ -991,6 +991,16 @@ def update_positions_table(data):
         style_cell=TABLE_STYLE_CELL,
         style_header=TABLE_STYLE_HEADER,
         style_table={"overflowX": "auto", "minWidth": "100%"},
+        style_as_list_view=True,
+        style_cell_conditional=(
+            [{"if": {"column_id": "Ticker"}, "textAlign": "left",
+              "fontWeight": "700", "color": "#E8EFF8"}]
+            + [{"if": {"column_id": "Catégorie"}, "textAlign": "center"}]
+            + [{"if": {"column_id": c}, "textAlign": "right",
+                "fontVariantNumeric": "tabular-nums"}
+               for c in ["Qté", "PRU (€)", "Cours (€)", "Valeur (€)", "Poids (%)",
+                         "P&L (€)", "P&L (%)", "Dividendes (€)", "Retour Total (%)"]]
+        ),
         style_data_conditional=[
             # Catégorie badges
             {
@@ -1035,10 +1045,11 @@ def update_positions_table(data):
             },
             {"if": {"row_index": "odd"}, "backgroundColor": "rgba(255,255,255,0.02)"},
         ],
-        page_size=15,
+        page_action="none",
         sort_action="native",
         filter_action="native",
-        style_filter={"backgroundColor": "#1E293B", "color": "#E2E8F0", "fontSize": "11px"},
+        cell_selectable=False,
+        style_filter={"backgroundColor": "#0d1626", "color": "#E2E8F0", "fontSize": "11px"},
     )
 
     count = f"{len(positions_df)} positions"
