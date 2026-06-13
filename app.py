@@ -143,6 +143,96 @@ TABLE_STYLE_HEADER = {
 }
 
 
+# ─── Tutoriel d'accueil ─────────────────────────────────────────────────────
+
+TUTORIAL_STEPS = [
+    {
+        "title": "👋 Bienvenue sur votre Dashboard",
+        "body": [
+            html.P("Ce tableau de bord analyse et suit votre portefeuille boursier : "
+                   "performance, risque, allocation, simulations d'achat et contexte macro."),
+            html.P("Ce guide rapide (quelques étapes) vous montre l'essentiel. "
+                   "Vous pouvez le passer à tout moment et le rouvrir via le bouton "
+                   "« ? Tutoriel » en haut à droite."),
+        ],
+    },
+    {
+        "title": "1 · Importer vos données",
+        "body": [
+            html.P("Cliquez sur « ↑ Importer fichier .xlsx » en haut à droite et "
+                   "chargez votre fichier de transactions."),
+            html.P("Le fichier doit contenir une feuille « BDD » (colonnes : Date, Type "
+                   "[Achat/Vente/Dividende/Versement], Ticker, Quantite, Prix_Unitaire, "
+                   "Montant_Total, Cash_Flow) et, en option, une feuille « Valorisation »."),
+            html.P("Aucune donnée n'est stockée sur le serveur : tout reste dans votre session.",
+                   style={"color": "#94a3b8", "fontSize": "12px"}),
+        ],
+    },
+    {
+        "title": "2 · Vue d'ensemble",
+        "body": [
+            html.P("La barre du haut résume vos chiffres clés : valorisation, cash, "
+                   "plus-values latentes, performance totale, TRI…"),
+            html.P("En dessous : la répartition par titre et par catégorie, puis le tableau "
+                   "détaillé de toutes vos positions, et vos métriques de risque "
+                   "(Sharpe, volatilité, drawdown, alpha/bêta vs CAC 40)."),
+        ],
+    },
+    {
+        "title": "3 · Calculateur de Position",
+        "body": [
+            html.P("Simulez l'impact d'un achat avant de le faire :"),
+            html.Ul([
+                html.Li("Renforcer une position existante → nouveau PRU, P&L simulé, "
+                        "nouvelle pondération."),
+                html.Li("Simuler un actif non détenu → décote/surcote vs cours actuel."),
+            ]),
+            html.P("Choisissez le financement (argent neuf ou cash disponible) pour des "
+                   "calculs cohérents.", style={"color": "#94a3b8", "fontSize": "12px"}),
+        ],
+    },
+    {
+        "title": "4 · Historique du Portefeuille",
+        "body": [
+            html.P("Visualisez vos positions clôturées (entièrement vendues) avec leurs "
+                   "gains/pertes réalisés, et le cumul des dividendes perçus par titre."),
+        ],
+    },
+    {
+        "title": "5 · Analyse, Performance & Macroéconomie",
+        "body": [
+            html.P("• Analyse par Titre : rendement/volatilité de chaque ligne."),
+            html.P("• Performance Historique : votre courbe vs CAC 40 (base 100)."),
+            html.P("• Macroéconomie : entrez votre clé API FRED (gratuite) puis cliquez "
+                   "sur « ↻ Actualiser » pour charger croissance, inflation, taux et cycles."),
+        ],
+    },
+    {
+        "title": "✅ C'est parti !",
+        "body": [
+            html.P("Vous êtes prêt. Commencez par importer votre fichier de transactions."),
+            html.P("Besoin de revoir ce guide ? Cliquez sur « ? Tutoriel » en haut à droite.",
+                   style={"color": "#94a3b8", "fontSize": "12px"}),
+        ],
+    },
+]
+
+
+def _render_tutorial_body(step):
+    step = max(0, min(step, len(TUTORIAL_STEPS) - 1))
+    dots = html.Div([
+        html.Span(style={
+            "display": "inline-block", "width": "8px", "height": "8px",
+            "borderRadius": "50%", "margin": "0 4px",
+            "backgroundColor": "#c4a24a" if i == step else "rgba(0,0,0,0.18)",
+        }) for i in range(len(TUTORIAL_STEPS))
+    ], style={"textAlign": "center", "marginTop": "18px"})
+    content = html.Div(TUTORIAL_STEPS[step]["body"],
+                       style={"fontSize": "13.5px", "lineHeight": "1.7", "color": "#334155",
+                              "minHeight": "150px"})
+    return TUTORIAL_STEPS[step]["title"], html.Div([content, dots])
+
+
 # ─── Layout ───────────────────────────────────────────────────────────────────
 
 def build_layout():
@@ -155,7 +245,28 @@ def build_layout():
         dcc.Store(id="macro-country-store", data="US"),
         dcc.Store(id="new-ticker-store"),
         dcc.Store(id="pc-new-ticker-store"),
+        dcc.Store(id="tutorial-step", data=0),
+        dcc.Store(id="tutorial-seen", storage_type="local"),
+        dcc.Interval(id="tutorial-init", interval=600, max_intervals=1),
         dcc.Download(id="download-pdf"),
+
+        # — Modal Tutoriel —
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle(id="tutorial-title")),
+            dbc.ModalBody(id="tutorial-body"),
+            dbc.ModalFooter([
+                dcc.Checklist(
+                    id="tutorial-dont-show",
+                    options=[{"label": " Ne plus afficher au démarrage", "value": "off"}],
+                    value=[], style={"marginRight": "auto", "fontSize": "12px",
+                                     "color": "#94a3b8"},
+                ),
+                dbc.Button("Passer", id="tutorial-skip", color="link",
+                           style={"color": "#94a3b8"}),
+                dbc.Button("Précédent", id="tutorial-prev", color="secondary", outline=True),
+                dbc.Button("Suivant", id="tutorial-next", color="warning"),
+            ]),
+        ], id="tutorial-modal", size="lg", is_open=False, backdrop="static"),
 
         # — Macro indicator modal —
         dbc.Modal([
@@ -183,6 +294,8 @@ def build_layout():
 
             html.Div([
                 html.Span(id="last-update-text", className="last-update"),
+                html.Button("?  Tutoriel", id="tutorial-open-btn", className="export-btn",
+                            n_clicks=0, title="Revoir le guide d'utilisation"),
                 html.Button("⬇  Export PDF", id="export-pdf-btn", className="export-btn", n_clicks=0),
                 dcc.Upload(
                     id="upload-data",
@@ -2267,6 +2380,78 @@ def update_history(raw_data):
         import traceback; traceback.print_exc()
         return html.Div("Erreur de rendu de l'historique.",
                         style={"color": "#f04f6a", "padding": "16px"}), empty, empty
+
+
+# ═══ Tutoriel d'accueil ═══════════════════════════════════════════════════════
+
+@app.callback(
+    Output("tutorial-modal", "is_open"),
+    Output("tutorial-step", "data"),
+    Output("tutorial-title", "children"),
+    Output("tutorial-body", "children"),
+    Output("tutorial-seen", "data"),
+    Input("tutorial-init", "n_intervals"),
+    Input("tutorial-open-btn", "n_clicks"),
+    Input("tutorial-next", "n_clicks"),
+    Input("tutorial-prev", "n_clicks"),
+    Input("tutorial-skip", "n_clicks"),
+    State("tutorial-step", "data"),
+    State("tutorial-seen", "data"),
+    State("tutorial-dont-show", "value"),
+    prevent_initial_call=True,
+)
+def manage_tutorial(_init, _open, _next, _prev, _skip, step, seen, dont_show):
+    ctx = callback_context
+    trig = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else ""
+    step = step or 0
+    n_steps = len(TUTORIAL_STEPS)
+    opt_out = "off" in (dont_show or [])
+
+    title, body = _render_tutorial_body(step)
+
+    # Auto-ouverture au chargement (sauf si déjà vu et opt-out enregistré)
+    if trig == "tutorial-init":
+        if seen:
+            return False, 0, title, body, no_update
+        title, body = _render_tutorial_body(0)
+        return True, 0, title, body, no_update
+
+    # Rouvrir via le bouton ?
+    if trig == "tutorial-open-btn":
+        title, body = _render_tutorial_body(0)
+        return True, 0, title, body, no_update
+
+    # Passer → fermer (mémorise si "ne plus afficher" coché)
+    if trig == "tutorial-skip":
+        return False, step, title, body, (True if opt_out else no_update)
+
+    # Précédent
+    if trig == "tutorial-prev":
+        new_step = max(0, step - 1)
+        title, body = _render_tutorial_body(new_step)
+        return True, new_step, title, body, no_update
+
+    # Suivant (ou Terminer sur la dernière étape)
+    if trig == "tutorial-next":
+        if step >= n_steps - 1:
+            return False, step, title, body, (True if opt_out else no_update)
+        new_step = step + 1
+        title, body = _render_tutorial_body(new_step)
+        return True, new_step, title, body, no_update
+
+    return no_update, no_update, no_update, no_update, no_update
+
+
+# Bouton « Suivant » → « Terminer » sur la dernière étape
+@app.callback(
+    Output("tutorial-next", "children"),
+    Output("tutorial-prev", "disabled"),
+    Input("tutorial-step", "data"),
+)
+def tutorial_button_labels(step):
+    step = step or 0
+    last = step >= len(TUTORIAL_STEPS) - 1
+    return ("Terminer" if last else "Suivant"), (step <= 0)
 
 
 # ─── Macro: fetch & store ─────────────────────────────────────────────────────
