@@ -235,50 +235,44 @@ def build_layout():
 
                 dcc.Tab(label="Vue d'ensemble", value="tab-overview", className="main-tab", selected_className="main-tab--selected", children=[
 
-                # Row 1: Positions table + Allocation pie
+                # Row 1: Deux graphiques d'allocation côte à côte
                 html.Div([
-                    # Positions Table
+                    # Allocation by ticker
                     html.Div([
                         html.Div([
-                            html.Span("Positions Actuelles", className="card-title"),
-                            html.Span(id="positions-count",
-                                      style={"fontSize": "11px", "color": "#94a3b8"}),
+                            html.Span("Répartition par Titre", className="card-title"),
                         ], className="card-header"),
-                        html.Div(
-                            id="positions-table-container",
-                            className="card-body",
-                            style={"padding": "0"},
-                        ),
+                        html.Div([
+                            dcc.Graph(id="pie-allocation", config={"displayModeBar": False},
+                                      style={"height": "340px"}),
+                        ], className="card-body"),
                     ], className="card"),
 
-                    # Right column: two charts stacked
+                    # Allocation by category
                     html.Div([
-
-                        # Allocation by ticker
                         html.Div([
-                            html.Div([
-                                html.Span("Répartition par Titre", className="card-title"),
-                            ], className="card-header"),
-                            html.Div([
-                                dcc.Graph(id="pie-allocation", config={"displayModeBar": False},
-                                          style={"height": "320px"}),
-                            ], className="card-body"),
-                        ], className="card"),
-
-                        # Allocation by category
+                            html.Span("Allocation par Catégorie", className="card-title"),
+                        ], className="card-header"),
                         html.Div([
-                            html.Div([
-                                html.Span("Allocation par Catégorie", className="card-title"),
-                            ], className="card-header"),
-                            html.Div([
-                                dcc.Graph(id="pie-category", config={"displayModeBar": False},
-                                          style={"height": "200px"}),
-                            ], className="card-body"),
-                        ], className="card"),
+                            dcc.Graph(id="pie-category", config={"displayModeBar": False},
+                                      style={"height": "340px"}),
+                        ], className="card-body"),
+                    ], className="card"),
+                ], className="grid-50-50"),
 
-                    ], style={"display": "flex", "flexDirection": "column", "gap": "0"}),
-
-                ], className="grid-70-30"),
+                # Row 1b: Positions table pleine largeur
+                html.Div([
+                    html.Div([
+                        html.Span("Positions Actuelles", className="card-title"),
+                        html.Span(id="positions-count",
+                                  style={"fontSize": "11px", "color": "#94a3b8"}),
+                    ], className="card-header"),
+                    html.Div(
+                        id="positions-table-container",
+                        className="card-body",
+                        style={"padding": "0"},
+                    ),
+                ], className="card"),
 
                 # Row 2: Performance chart + Risk metrics
                 html.Div([
@@ -1047,9 +1041,7 @@ def update_positions_table(data):
         ],
         page_action="none",
         sort_action="native",
-        filter_action="native",
         cell_selectable=False,
-        style_filter={"backgroundColor": "#0d1626", "color": "#E2E8F0", "fontSize": "11px"},
     )
 
     count = f"{len(positions_df)} positions"
