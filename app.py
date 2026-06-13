@@ -154,6 +154,7 @@ def build_layout():
         dcc.Store(id="store-macro"),
         dcc.Store(id="macro-country-store", data="US"),
         dcc.Store(id="new-ticker-store"),
+        dcc.Store(id="pc-new-ticker-store"),
         dcc.Download(id="download-pdf"),
 
         # — Macro indicator modal —
@@ -424,6 +425,127 @@ def build_layout():
                 ], style={"marginBottom": "14px"}),
 
                 ]),  # end tab-overview
+
+                # ── Tab: Calculateur de Position (dédié) ──────────────────
+                dcc.Tab(label="Calculateur de Position", value="tab-calc",
+                        className="main-tab", selected_className="main-tab--selected",
+                        children=[
+                    html.Div([
+
+                        # Bandeau récap portefeuille
+                        html.Div(id="pc-portfolio-banner", style={"marginBottom": "14px"}),
+
+                        # ── A. Renforcer une position existante ───────────────
+                        html.Div([
+                            html.Div([
+                                html.Span("Renforcer une Position Existante", className="card-title"),
+                                html.Span("Moyenne à la hausse/baisse — impact sur PRU, P&L et pondération",
+                                          style={"fontSize": "10px", "color": "#94a3b8"}),
+                            ], className="card-header"),
+                            html.Div([
+                                html.Div([
+                                    html.Div([
+                                        html.Label("Sélectionner un actif détenu", className="input-label"),
+                                        dcc.Dropdown(id="pc-ticker-select", className="dash-dropdown"),
+                                    ], className="input-group"),
+                                    html.Div([
+                                        html.Label("Financement", className="input-label"),
+                                        dcc.RadioItems(
+                                            id="pc-funding",
+                                            options=[
+                                                {"label": " Argent neuf (apport)", "value": "new"},
+                                                {"label": " Depuis le cash dispo.", "value": "cash"},
+                                            ],
+                                            value="new",
+                                            labelStyle={"display": "block", "fontSize": "12px",
+                                                        "color": "#cbd5e1", "marginBottom": "4px"},
+                                        ),
+                                    ], className="input-group"),
+                                ], className="calculator-grid",
+                                   style={"gridTemplateColumns": "2fr 1fr", "marginBottom": "18px"}),
+
+                                html.Div([
+                                    html.Div([
+                                        html.Div("Position Actuelle", style={"fontWeight": "600",
+                                                 "fontSize": "12px", "marginBottom": "8px"}),
+                                        html.Div(id="pc-current-pos", className="calc-info-box"),
+                                    ], style={"flex": "1"}),
+                                    html.Div([
+                                        html.Div("Tranches d'achat simulées", style={"fontWeight": "600",
+                                                 "fontSize": "12px", "marginBottom": "8px"}),
+                                        html.Div([
+                                            html.Div([
+                                                dcc.Input(id=f"pc-price-{i}", type="number",
+                                                          placeholder=f"Prix tranche {i} €",
+                                                          className="calc-input-small"),
+                                                dcc.Input(id=f"pc-qty-{i}", type="number",
+                                                          placeholder="Quantité",
+                                                          className="calc-input-small"),
+                                            ], className="calc-sim-row") for i in range(1, 4)
+                                        ]),
+                                    ], style={"flex": "2", "marginLeft": "20px"}),
+                                ], style={"display": "flex", "marginBottom": "18px"}),
+
+                                html.Div(id="pc-results", className="calc-results"),
+                            ], className="card-body"),
+                        ], className="card"),
+
+                        # ── B. Simuler un actif non détenu ────────────────────
+                        html.Div([
+                            html.Div([
+                                html.Span("Simuler un Actif Non Détenu", className="card-title"),
+                                html.Span("Nouvelle ligne — pondération cible, décote/surcote vs marché",
+                                          style={"fontSize": "10px", "color": "#94a3b8"}),
+                            ], className="card-header"),
+                            html.Div([
+                                html.Div([
+                                    html.Div([
+                                        html.Label("Ticker (ex: MC.PA, AAPL)", className="input-label"),
+                                        dcc.Input(id="pc-new-ticker-input", type="text",
+                                                  placeholder="Ex: MC.PA", debounce=True,
+                                                  className="calc-input"),
+                                    ], className="input-group"),
+                                    html.Div([
+                                        html.Label("Cours actuel", className="input-label"),
+                                        html.Div(id="pc-new-ticker-price-display", className="calc-info-box",
+                                                 style={"minHeight": "36px", "padding": "8px 12px",
+                                                        "fontSize": "13px", "display": "flex",
+                                                        "alignItems": "center"}),
+                                    ], className="input-group"),
+                                ], className="calculator-grid",
+                                   style={"gridTemplateColumns": "1fr 1fr", "marginBottom": "14px"}),
+                                html.Div([
+                                    html.Div([
+                                        html.Label("Prix d'achat souhaité (€)", className="input-label"),
+                                        dcc.Input(id="pc-new-buy-price", type="number",
+                                                  placeholder="Prix €", className="calc-input"),
+                                    ], className="input-group"),
+                                    html.Div([
+                                        html.Label("Quantité", className="input-label"),
+                                        dcc.Input(id="pc-new-qty", type="number",
+                                                  placeholder="Quantité", className="calc-input"),
+                                    ], className="input-group"),
+                                    html.Div([
+                                        html.Label("Financement", className="input-label"),
+                                        dcc.RadioItems(
+                                            id="pc-new-funding",
+                                            options=[
+                                                {"label": " Argent neuf", "value": "new"},
+                                                {"label": " Cash dispo.", "value": "cash"},
+                                            ],
+                                            value="new",
+                                            labelStyle={"display": "block", "fontSize": "12px",
+                                                        "color": "#cbd5e1", "marginBottom": "4px"},
+                                        ),
+                                    ], className="input-group"),
+                                ], className="calculator-grid",
+                                   style={"gridTemplateColumns": "1fr 1fr 1fr", "marginBottom": "16px"}),
+                                html.Div(id="pc-new-results", className="calc-results"),
+                            ], className="card-body"),
+                        ], className="card"),
+
+                    ], style={"marginTop": "14px"}),
+                ]),  # end tab-calc
 
                 # ── Tab 2: Analyse par Titre ──────────────────────────────
                 dcc.Tab(label="Analyse par Titre", value="tab-tickers", className="main-tab", selected_className="main-tab--selected", children=[
@@ -1772,6 +1894,245 @@ def update_new_ticker_simulator(buy_price, qty, ticker, current_price, data_json
 
     except Exception as e:
         print(f"DEBUG Error new ticker simulator: {e}")
+        return []
+
+
+# ═══ Onglet dédié : Calculateur de Position ═══════════════════════════════════
+
+def _pc_card(label, value, color="#E8EFF8", sub=None):
+    children = [
+        html.Div(label, className="calc-result-label"),
+        html.Div(value, className="calc-result-value", style={"color": color}),
+    ]
+    if sub:
+        children.append(html.Div(sub, style={"fontSize": "10px", "color": "#64748b",
+                                              "marginTop": "2px"}))
+    return html.Div(children, className="calc-result-item")
+
+
+# PC-1. Init : options du dropdown + bandeau récap
+@app.callback(
+    Output("pc-ticker-select", "options"),
+    Output("pc-portfolio-banner", "children"),
+    Input("store-analytics", "data"),
+)
+def pc_init(data_json):
+    if not data_json:
+        return [], []
+    try:
+        data = json.loads(data_json)
+        df_pos = pd.DataFrame(data["positions"])
+        summ = data.get("summary", {})
+        if df_pos.empty:
+            return [], []
+        options = [{"label": t, "value": t} for t in df_pos["Ticker"].tolist()]
+
+        total = summ.get("total_portfolio_value", 0)
+        cash = summ.get("cash_balance", 0)
+        val_titres = summ.get("total_value", 0)
+
+        def _kpi(lbl, val, color="#E8EFF8"):
+            return html.Div([
+                html.Div(lbl, style={"fontSize": "9px", "color": "#64748b",
+                                     "textTransform": "uppercase", "letterSpacing": "1px"}),
+                html.Div(val, style={"fontSize": "18px", "fontWeight": "700", "color": color}),
+            ], style={"flex": "1", "minWidth": "150px", "padding": "10px 14px"})
+
+        banner = html.Div([
+            html.Div([
+                _kpi("Valorisation totale", fmt_eur(total)),
+                _kpi("Valeur des titres", fmt_eur(val_titres)),
+                _kpi("Cash disponible", fmt_eur(cash), "#3d8fd1"),
+            ], style={"display": "flex", "gap": "12px", "flexWrap": "wrap", "padding": "6px"}),
+        ], className="card")
+        return options, banner
+    except Exception as e:
+        print(f"[pc] init error: {e}")
+        return [], []
+
+
+# PC-2. Renfort d'une position existante
+@app.callback(
+    Output("pc-current-pos", "children"),
+    Output("pc-results", "children"),
+    Input("pc-ticker-select", "value"),
+    Input("pc-funding", "value"),
+    Input("pc-price-1", "value"), Input("pc-qty-1", "value"),
+    Input("pc-price-2", "value"), Input("pc-qty-2", "value"),
+    Input("pc-price-3", "value"), Input("pc-qty-3", "value"),
+    State("store-analytics", "data"),
+)
+def pc_update_reinforce(ticker, funding, p1, q1, p2, q2, p3, q3, data_json):
+    if not ticker or not data_json:
+        return "Sélectionnez un actif détenu…", []
+    try:
+        data = json.loads(data_json)
+        df_pos = pd.DataFrame(data["positions"])
+        summ = data.get("summary", {})
+        pos = df_pos[df_pos["Ticker"] == ticker]
+        if pos.empty:
+            return "Actif non trouvé", []
+        pos = pos.iloc[0]
+
+        pru   = float(pos.get("PRU (€)", 0))
+        qty   = float(pos.get("Qté", 0))
+        cours = float(pos.get("Cours (€)", pru))
+
+        cost      = pru * qty
+        mkt_val   = cours * qty
+        pnl_pct   = ((cours - pru) / pru * 100) if pru > 0 else 0
+        total_pf  = float(summ.get("total_portfolio_value", 0))
+        cash      = float(summ.get("cash_balance", 0))
+        cur_weight = (mkt_val / total_pf * 100) if total_pf > 0 else 0
+
+        pnl_color = "#00c896" if pnl_pct >= 0 else "#f04f6a"
+        current_info = html.Div([
+            html.Div(f"PRU : {pru:,.2f} €"),
+            html.Div(f"Cours actuel : {cours:,.2f} €"),
+            html.Div(f"Quantité : {qty:,.2f}"),
+            html.Div(f"Valeur de marché : {mkt_val:,.2f} €",
+                     style={"fontWeight": "600", "marginTop": "4px"}),
+            html.Div(f"P&L latent : {pnl_pct:+.2f} %", style={"color": pnl_color}),
+            html.Div(f"Poids actuel : {cur_weight:.2f} %", style={"color": "#94a3b8"}),
+        ])
+
+        # Tranches simulées
+        added_cost = 0.0
+        added_qty = 0.0
+        for price, q in [(p1, q1), (p2, q2), (p3, q3)]:
+            if price is not None and q is not None:
+                added_cost += float(price) * float(q)
+                added_qty += float(q)
+
+        if added_qty <= 0:
+            return current_info, [html.Div("Saisissez au moins une tranche (prix + quantité).",
+                                           style={"color": "#64748b", "fontSize": "12px",
+                                                  "padding": "8px"})]
+
+        new_qty   = qty + added_qty
+        new_cost  = cost + added_cost
+        new_pru   = new_cost / new_qty if new_qty > 0 else 0
+        pru_delta = ((new_pru - pru) / pru * 100) if pru > 0 else 0
+        new_mkt   = new_qty * cours                      # valorisé au cours actuel
+        new_pnl   = new_mkt - new_cost
+        new_pnl_pct = (new_pnl / new_cost * 100) if new_cost > 0 else 0
+
+        # Pondération selon le financement
+        if funding == "cash":
+            new_total_pf = total_pf                      # cash → titres, total inchangé
+            cash_after = cash - added_cost
+        else:
+            new_total_pf = total_pf + added_cost         # apport d'argent neuf
+            cash_after = cash
+        new_weight = (new_mkt / new_total_pf * 100) if new_total_pf > 0 else 0
+
+        pru_color = "#00c896" if pru_delta <= 0 else "#f59e0b"   # baisse du PRU = vert
+        newpnl_color = "#00c896" if new_pnl >= 0 else "#f04f6a"
+
+        cards = [
+            _pc_card("Montant investi", fmt_eur(added_cost)),
+            _pc_card("Nouveau PRU", f"{new_pru:,.2f} €".replace(",", " "),
+                     pru_color, sub=f"{pru_delta:+.2f} % vs PRU actuel"),
+            _pc_card("Nouvelle quantité", f"{new_qty:,.2f}"),
+            _pc_card("Valeur de marché", fmt_eur(new_mkt), "#c4a24a",
+                     sub="au cours actuel"),
+            _pc_card("P&L latent simulé", f"{new_pnl_pct:+.2f} %", newpnl_color,
+                     sub=fmt_eur(new_pnl)),
+            _pc_card("Nouvelle pondération", f"{new_weight:.2f} %", "#d4b87a",
+                     sub=f"avant : {cur_weight:.2f} %"),
+            _pc_card("Point mort (PRU)", f"{new_pru:,.2f} €".replace(",", " "),
+                     "#94a3b8", sub="cours requis pour être à l'équilibre"),
+        ]
+        if funding == "cash":
+            cash_color = "#f04f6a" if cash_after < 0 else "#3d8fd1"
+            sub = "⚠ dépasse le cash dispo." if cash_after < 0 else "après achat"
+            cards.append(_pc_card("Cash restant", fmt_eur(cash_after), cash_color, sub=sub))
+        else:
+            cards.append(_pc_card("Nouveau total portef.", fmt_eur(new_total_pf),
+                                  "#94a3b8", sub="avec apport"))
+
+        return current_info, cards
+    except Exception as e:
+        print(f"[pc] reinforce error: {e}")
+        return "Erreur lors du calcul", []
+
+
+# PC-3. Cours du nouvel actif (ticker libre)
+@app.callback(
+    Output("pc-new-ticker-store", "data"),
+    Output("pc-new-ticker-price-display", "children"),
+    Input("pc-new-ticker-input", "value"),
+    prevent_initial_call=True,
+)
+def pc_fetch_new_price(ticker):
+    if not ticker or len(ticker.strip()) < 1:
+        return None, "—"
+    t = ticker.strip().upper()
+    try:
+        price = engine.fetch_current_prices([t]).get(t)
+        if price is not None and not pd.isna(price):
+            price = float(price)
+            return price, html.Span(f"{price:,.2f} €",
+                                    style={"color": "#E8EFF8", "fontWeight": "600"})
+        return None, html.Span("Ticker introuvable",
+                               style={"color": "#f04f6a", "fontSize": "11px"})
+    except Exception:
+        return None, html.Span("Erreur de récupération",
+                               style={"color": "#f04f6a", "fontSize": "11px"})
+
+
+# PC-4. Simulateur nouvel actif
+@app.callback(
+    Output("pc-new-results", "children"),
+    Input("pc-new-buy-price", "value"),
+    Input("pc-new-qty", "value"),
+    Input("pc-new-funding", "value"),
+    State("pc-new-ticker-store", "data"),
+    State("store-analytics", "data"),
+    prevent_initial_call=True,
+)
+def pc_update_new(buy_price, qty, funding, current_price, data_json):
+    if buy_price is None or qty is None or not data_json:
+        return []
+    try:
+        data = json.loads(data_json)
+        summ = data.get("summary", {})
+        total_pf = float(summ.get("total_portfolio_value", 0))
+        cash = float(summ.get("cash_balance", 0))
+
+        buy_price = float(buy_price)
+        qty = float(qty)
+        position_value = buy_price * qty
+
+        if funding == "cash":
+            new_total = total_pf
+            cash_after = cash - position_value
+        else:
+            new_total = total_pf + position_value
+            cash_after = cash
+        weight = (position_value / new_total * 100) if new_total > 0 else 0
+
+        cards = [
+            _pc_card("PRU d'entrée", f"{buy_price:,.2f} €".replace(",", " ")),
+            _pc_card("Quantité", f"{qty:,.2f}"),
+            _pc_card("Montant investi", fmt_eur(position_value), "#c4a24a"),
+            _pc_card("Pondération résultante", f"{weight:.2f} %", "#d4b87a"),
+        ]
+        if current_price is not None:
+            gap = (current_price - buy_price) / buy_price * 100
+            sign = "+" if gap >= 0 else ""
+            color = "#00c896" if gap >= 0 else "#f04f6a"
+            lbl = "Surcote vs cours actuel" if gap >= 0 else "Décote vs cours actuel"
+            cards.append(_pc_card(lbl, f"{sign}{gap:.2f} %", color,
+                                  sub=f"cours : {current_price:,.2f} €"))
+        if funding == "cash":
+            cash_color = "#f04f6a" if cash_after < 0 else "#3d8fd1"
+            sub = "⚠ dépasse le cash dispo." if cash_after < 0 else "après achat"
+            cards.append(_pc_card("Cash restant", fmt_eur(cash_after), cash_color, sub=sub))
+
+        return cards
+    except Exception as e:
+        print(f"[pc] new-ticker error: {e}")
         return []
 
 
