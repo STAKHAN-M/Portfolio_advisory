@@ -662,3 +662,46 @@ body {
     .kpi-value    { font-size: 1.1rem; }
     .calc-results { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ─── Visite guidée (tutoriel) ─────────────────────────────────────────────── */
+/* Carte flottante non bloquante : on voit le dashboard changer d'onglet derrière */
+.tutorial-modal { pointer-events: none; }
+.tutorial-modal .modal-dialog {
+    position: fixed;
+    bottom: 26px;
+    right: 26px;
+    left: auto;
+    margin: 0;
+    transform: none !important;
+    width: 540px;
+    max-width: calc(100% - 52px);
+    pointer-events: auto;
+}
+.tutorial-content {
+    background: #0d1626;
+    border: 1px solid rgba(196,162,74,0.28);
+    border-radius: 14px;
+    box-shadow: 0 22px 60px rgba(0,0,0,0.6);
+    color: #cbd5e1;
+}
+.tutorial-content .modal-header {
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 20px 12px;
+}
+.tutorial-content .modal-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: #E8EFF8;
+}
+.tutorial-content .modal-body { padding: 10px 20px 6px; }
+.tutorial-content .modal-footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 20px;
+    gap: 8px;
+}
+.tutorial-content .btn-close {
+    filter: invert(1) grayscale(1) brightness(1.7);
+    opacity: 0.5;
+}
+.tutorial-content .btn-close:hover { opacity: 0.9; }
