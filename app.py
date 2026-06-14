@@ -750,6 +750,17 @@ def build_layout():
                         html.Div(id="hist-summary", style={"marginBottom": "14px"}),
                         html.Div([
                             html.Div([
+                                html.Span("Plus-Values Latentes — Positions Ouvertes",
+                                          className="card-title"),
+                                html.Span("Gains & pertes non réalisés sur les titres encore détenus (cours actuel vs PRU)",
+                                          style={"fontSize": "10px", "color": "#94a3b8"}),
+                            ], className="card-header"),
+                            html.Div([
+                                dcc.Graph(id="hist-latent-chart", config={"displayModeBar": False}),
+                            ], className="card-body"),
+                        ], className="card"),
+                        html.Div([
+                            html.Div([
                                 html.Span("Positions Clôturées — Gains & Pertes Réalisés",
                                           className="card-title"),
                                 html.Span("P&L réalisé à la revente (coût moyen) — positions entièrement vendues",
@@ -2331,25 +2342,47 @@ def pc_update_new(buy_price, qty, funding, current_price, data_json):
 
 @app.callback(
     Output("hist-summary", "children"),
+    Output("hist-latent-chart", "figure"),
     Output("hist-closed-chart", "figure"),
     Output("hist-dividends-chart", "figure"),
     Input("store-data", "data"),
+    Input("store-analytics", "data"),
 )
-def update_history(raw_data):
+def update_history(raw_data, analytics_data):
     empty = go.Figure()
     empty.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     if not raw_data:
-        return [], empty, empty
+        return [], empty, empty, empty
     try:
         data = json.loads(raw_data)
         df = pd.read_json(io.StringIO(data["df"]), orient="records")
         closed, dividends = engine.compute_realized_and_dividends(df)
+
+        # ── Positions ouvertes (plus-values latentes) depuis store-analytics ──
+        open_pos = []
+        if analytics_data:
+            try:
+                ad = json.loads(analytics_data)
+                for p in ad.get("positions", []):
+                    pnl = p.get("P&L (€)")
+                    if pnl is None:
+                        continue
+                    open_pos.append({
+                        "ticker": p.get("Ticker"),
+                        "pnl": float(pnl),
+                        "pnl_pct": float(p.get("P&L (%)", 0) or 0),
+                        "value": float(p.get("Valeur (€)", 0) or 0),
+                        "cost": float(p.get("Valeur (€)", 0) or 0) - float(pnl),
+                    })
+            except Exception:
+                open_pos = []
 
         # ── Bandeau récap ────────────────────────────────────────────────────
         tot_realized = sum(c["realized"] for c in closed)
         winners = [c for c in closed if c["realized"] > 0]
         losers  = [c for c in closed if c["realized"] < 0]
         tot_div = sum(d["dividends"] for d in dividends)
+        tot_latent = sum(p["pnl"] for p in open_pos)
 
         def _kpi(lbl, val, color="#E8EFF8"):
             return html.Div([
@@ -2359,8 +2392,10 @@ def update_history(raw_data):
             ], style={"flex": "1", "minWidth": "150px", "padding": "12px 16px"})
 
         rc = "#00c896" if tot_realized >= 0 else "#f04f6a"
+        lc = "#00c896" if tot_latent >= 0 else "#f04f6a"
         summary = html.Div([
             html.Div([
+                _kpi("Plus-values latentes", fmt_eur(tot_latent), lc),
                 _kpi("P&L réalisé total", fmt_eur(tot_realized), rc),
                 _kpi("Positions clôturées", str(len(closed))),
                 _kpi("Gagnantes / Perdantes",
@@ -2368,6 +2403,35 @@ def update_history(raw_data):
                 _kpi("Dividendes cumulés", fmt_eur(tot_div), "#c4a24a"),
             ], style={"display": "flex", "gap": "12px", "flexWrap": "wrap", "padding": "6px"}),
         ], className="card")
+
+        # ── Graphique 0 : plus-values latentes (positions ouvertes) ──────────
+        fig_latent = go.Figure()
+        if open_pos:
+            ls = sorted(open_pos, key=lambda p: p["pnl"])  # croissant → pires en bas
+            l_tickers = [p["ticker"] for p in ls]
+            l_vals = [p["pnl"] for p in ls]
+            l_colors = ["#00c896" if v >= 0 else "#f04f6a" for v in l_vals]
+            fig_latent.add_trace(go.Bar(
+                x=l_vals, y=l_tickers, orientation="h",
+                marker=dict(color=l_colors),
+                text=[f"{fmt_eur(v)}  ({p['pnl_pct']:+.1f}%)" for v, p in zip(l_vals, ls)],
+                textposition="auto",
+                customdata=[[fmt_eur(p["value"]), fmt_eur(p["cost"])] for p in ls],
+                hovertemplate="<b>%{y}</b><br>P&L latent : %{x:,.2f} €"
+                              "<br>Valeur actuelle : %{customdata[0]} · Prix de revient : %{customdata[1]}"
+                              "<extra></extra>",
+            ))
+            fig_latent.add_vline(x=0, line_color="rgba(255,255,255,0.3)", line_width=1)
+        else:
+            fig_latent.add_annotation(text="Aucune position ouverte (charge tes données / l'onglet Vue d'ensemble)",
+                                      xref="paper", yref="paper", x=0.5, y=0.5,
+                                      showarrow=False, font=dict(color="#64748b", size=13))
+        fig_latent.update_layout(
+            **{k: v for k, v in CHART_LAYOUT.items() if k not in ("margin", "legend")},
+            height=max(280, 26 * len(open_pos) + 60),
+            margin=dict(l=8, r=16, t=8, b=24),
+            xaxis_ticksuffix=" €", showlegend=False,
+        )
 
         # ── Graphique 1 : P&L réalisé des positions clôturées ────────────────
         fig_closed = go.Figure()
@@ -2420,11 +2484,11 @@ def update_history(raw_data):
             xaxis_ticksuffix=" €", showlegend=False,
         )
 
-        return summary, fig_closed, fig_div
+        return summary, fig_latent, fig_closed, fig_div
     except Exception:
         import traceback; traceback.print_exc()
         return html.Div("Erreur de rendu de l'historique.",
-                        style={"color": "#f04f6a", "padding": "16px"}), empty, empty
+                        style={"color": "#f04f6a", "padding": "16px"}), empty, empty, empty
 
 
 # ═══ Tutoriel d'accueil ═══════════════════════════════════════════════════════
