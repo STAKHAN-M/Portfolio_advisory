@@ -278,6 +278,7 @@ def build_layout():
         dcc.Store(id="tutorial-seen", storage_type="local"),
         dcc.Interval(id="tutorial-init", interval=600, max_intervals=1),
         dcc.Download(id="download-pdf"),
+        dcc.Download(id="download-template"),
 
         # — Visite guidée (carte flottante non bloquante) —
         dbc.Modal([
@@ -326,6 +327,8 @@ def build_layout():
                 html.Span(id="last-update-text", className="last-update"),
                 html.Button("?  Tutoriel", id="tutorial-open-btn", className="export-btn",
                             n_clicks=0, title="Revoir le guide d'utilisation"),
+                html.Button("⤓  Modèle Excel", id="download-template-btn", className="export-btn",
+                            n_clicks=0, title="Télécharger un fichier modèle pré-rempli"),
                 html.Button("⬇  Export PDF", id="export-pdf-btn", className="export-btn", n_clicks=0),
                 dcc.Upload(
                     id="upload-data",
@@ -3346,6 +3349,60 @@ def toggle_indicator_modal(tile_clicks, close_clicks, data_json):
         plot_bgcolor="#07101f",
     )
     return True, title, fig
+
+
+# ─── Téléchargement du modèle Excel ────────────────────────────────────────────
+
+@app.callback(
+    Output("download-template", "data"),
+    Input("download-template-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def download_template(n_clicks):
+    if not n_clicks:
+        return no_update
+
+    # Feuille BDD — transactions (avec lignes d'exemple à remplacer)
+    bdd = pd.DataFrame([
+        {"Date": "2024-01-02", "Type": "Versement", "Ticker": "", "Description_Operation": "Dépôt initial",
+         "Quantite": 0, "Prix_Unitaire": 0, "Montant_Total": 1000, "Cash_Flow": 1000},
+        {"Date": "2024-01-05", "Type": "Achat", "Ticker": "MC.PA", "Description_Operation": "Achat LVMH",
+         "Quantite": 2, "Prix_Unitaire": 700, "Montant_Total": 1400, "Cash_Flow": -1400},
+        {"Date": "2024-03-15", "Type": "Dividende", "Ticker": "MC.PA", "Description_Operation": "Dividende LVMH",
+         "Quantite": 0, "Prix_Unitaire": 0, "Montant_Total": 26, "Cash_Flow": 26},
+        {"Date": "2024-06-20", "Type": "Vente", "Ticker": "MC.PA", "Description_Operation": "Vente partielle LVMH",
+         "Quantite": 1, "Prix_Unitaire": 750, "Montant_Total": 750, "Cash_Flow": 750},
+    ], columns=["Date", "Type", "Ticker", "Description_Operation", "Quantite",
+                "Prix_Unitaire", "Montant_Total", "Cash_Flow"])
+
+    # Feuille Valorisation — snapshots mensuels (optionnelle)
+    val = pd.DataFrame([
+        {"Date": "2024-01-31", "Valeur_Portefeuille": 1380, "Cash": 26,
+         "Total_Versements": 1000, "Plus_Moins_Value": 380},
+        {"Date": "2024-02-29", "Valeur_Portefeuille": 1420, "Cash": 26,
+         "Total_Versements": 1000, "Plus_Moins_Value": 420},
+    ], columns=["Date", "Valeur_Portefeuille", "Cash", "Total_Versements", "Plus_Moins_Value"])
+
+    # Feuille Notice — rappel du format
+    notice = pd.DataFrame([
+        {"Colonne": "Date", "Description": "Date de l'opération (AAAA-MM-JJ)"},
+        {"Colonne": "Type", "Description": "Achat, Vente, Dividende ou Versement"},
+        {"Colonne": "Ticker", "Description": "Symbole boursier Yahoo Finance (ex: MC.PA, AAPL). Vide pour un Versement."},
+        {"Colonne": "Description_Operation", "Description": "Libellé libre (facultatif)"},
+        {"Colonne": "Quantite", "Description": "Nombre de titres (0 pour Versement/Dividende)"},
+        {"Colonne": "Prix_Unitaire", "Description": "Prix par titre"},
+        {"Colonne": "Montant_Total", "Description": "Montant brut de l'opération"},
+        {"Colonne": "Cash_Flow", "Description": "Flux de trésorerie : négatif pour un Achat, positif pour Vente/Dividende/Versement"},
+        {"Colonne": "— Feuille Valorisation —", "Description": "Optionnelle : un instantané mensuel de la valeur du portefeuille pour la courbe de performance."},
+    ], columns=["Colonne", "Description"])
+
+    def _write(buf):
+        with pd.ExcelWriter(buf, engine="openpyxl") as xl:
+            bdd.to_excel(xl, sheet_name="BDD", index=False)
+            val.to_excel(xl, sheet_name="Valorisation", index=False)
+            notice.to_excel(xl, sheet_name="Notice", index=False)
+
+    return dcc.send_bytes(_write, "modele_portefeuille.xlsx")
 
 
 # ─── PDF Export ───────────────────────────────────────────────────────────────
