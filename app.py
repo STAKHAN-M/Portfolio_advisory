@@ -167,8 +167,11 @@ TUTORIAL_STEPS = [
             html.P("Le fichier doit contenir une feuille « BDD » (Date, Type, Ticker, "
                    "Quantite, Prix_Unitaire, Montant_Total, Cash_Flow) et, en option, une "
                    "feuille « Valorisation »."),
+            html.Button("⤓  Télécharger le modèle Excel", id="download-template-btn-tuto",
+                        className="upload-btn", n_clicks=0,
+                        style={"cursor": "pointer", "marginBottom": "6px"}),
             html.P("Aucune donnée n'est stockée sur le serveur — tout reste dans votre session.",
-                   style={"color": "#7c93ad", "fontSize": "12px"}),
+                   style={"color": "#7c93ad", "fontSize": "12px", "marginTop": "10px"}),
         ],
     },
     {
@@ -359,9 +362,18 @@ def build_layout():
                     html.Div("Aucun portefeuille chargé", className="empty-state-title"),
                     html.Div(
                         "Importez votre fichier de transactions Excel (.xlsx) "
-                        "en cliquant sur le bouton ci-dessus pour initialiser le dashboard.",
+                        "en cliquant sur « Importer fichier » en haut à droite.",
                         className="empty-state-text"
                     ),
+                    html.Div(
+                        "Vous n'avez pas encore de fichier ?",
+                        className="empty-state-text",
+                        style={"marginTop": "18px", "marginBottom": "8px"},
+                    ),
+                    html.Button("⤓  Télécharger le modèle Excel",
+                                id="download-template-btn-empty",
+                                className="upload-btn", n_clicks=0,
+                                style={"cursor": "pointer"}),
                 ],
             ),
 
@@ -3356,10 +3368,15 @@ def toggle_indicator_modal(tile_clicks, close_clicks, data_json):
 @app.callback(
     Output("download-template", "data"),
     Input("download-template-btn", "n_clicks"),
+    Input("download-template-btn-empty", "n_clicks"),
+    Input("download-template-btn-tuto", "n_clicks"),
     prevent_initial_call=True,
 )
-def download_template(n_clicks):
-    if not n_clicks:
+def download_template(n1, n2, n3):
+    ctx = callback_context
+    # Ne déclencher que sur un vrai clic (évite le faux déclenchement au montage
+    # dynamique du bouton dans le tutoriel, où n_clicks vaut 0)
+    if not ctx.triggered or not ctx.triggered[0].get("value"):
         return no_update
 
     # Feuille BDD — transactions (avec lignes d'exemple à remplacer)
