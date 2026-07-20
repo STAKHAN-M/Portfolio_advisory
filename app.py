@@ -24,6 +24,7 @@ import dash_bootstrap_components as dbc
 import engine
 import pdf_report
 import macro_engine
+import demo_data
 
 # ─── Chargement clé FRED depuis .env ─────────────────────────────────────────
 try:
@@ -330,6 +331,9 @@ def build_layout():
                 html.Span(id="last-update-text", className="last-update"),
                 html.Button("?  Tutoriel", id="tutorial-open-btn", className="export-btn",
                             n_clicks=0, title="Revoir le guide d'utilisation"),
+                html.Button("▶  Démo", id="demo-btn", className="export-btn",
+                            n_clicks=0,
+                            title="Charger un portefeuille de démonstration (données fictives)"),
                 html.Button("⤓  Modèle Excel", id="download-template-btn", className="export-btn",
                             n_clicks=0, title="Télécharger un fichier modèle pré-rempli"),
                 html.Button("⬇  Export PDF", id="export-pdf-btn", className="export-btn", n_clicks=0),
@@ -365,10 +369,28 @@ def build_layout():
                         "en cliquant sur « Importer fichier » en haut à droite.",
                         className="empty-state-text"
                     ),
+
+                    # — Découverte sans données personnelles —
+                    html.Div(
+                        "Vous voulez juste voir à quoi ça ressemble ?",
+                        className="empty-state-text",
+                        style={"marginTop": "22px", "marginBottom": "8px"},
+                    ),
+                    html.Button("▶  Explorer la démo",
+                                id="demo-btn-empty",
+                                className="upload-btn", n_clicks=0,
+                                style={"cursor": "pointer",
+                                       "background": "#c4a24a", "color": "#0d1626",
+                                       "fontWeight": "700", "border": "none"}),
+                    html.Div(
+                        "Portefeuille fictif, cours réels — aucune donnée à transmettre.",
+                        style={"fontSize": "11px", "color": "#64748b", "marginTop": "8px"},
+                    ),
+
                     html.Div(
                         "Vous n'avez pas encore de fichier ?",
                         className="empty-state-text",
-                        style={"marginTop": "18px", "marginBottom": "8px"},
+                        style={"marginTop": "26px", "marginBottom": "8px"},
                     ),
                     html.Button("⤓  Télécharger le modèle Excel",
                                 id="download-template-btn-empty",
@@ -379,6 +401,9 @@ def build_layout():
 
             # — Dashboard Body (hidden until data loaded) —
             html.Div(id="dashboard-body", style={"display": "none"}, children=[
+
+                # Bandeau « mode démonstration »
+                html.Div(id="demo-banner", style={"display": "none"}),
 
                 # KPI Row
                 html.Div(id="kpi-row", className="kpi-row"),
@@ -902,10 +927,24 @@ app.layout = build_layout()
     Output("last-update-text", "children"),
     Output("loading-trigger", "children"),
     Input("upload-data", "contents"),
+    Input("demo-btn", "n_clicks"),
+    Input("demo-btn-empty", "n_clicks"),
     State("upload-data", "filename"),
     prevent_initial_call=True,
 )
-def process_upload(contents, filename):
+def process_upload(contents, demo_n, demo_n_empty, filename):
+    ctx = callback_context
+    trig = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else ""
+
+    # — Portefeuille de démonstration (aucune donnée utilisateur) —
+    if trig in ("demo-btn", "demo-btn-empty"):
+        if not ctx.triggered[0].get("value"):
+            return no_update, no_update, no_update
+        payload = demo_data.build_demo_payload()
+        return (json.dumps(payload),
+                "Mode démonstration — données fictives, cours réels",
+                "")
+
     if contents is None:
         return no_update, no_update, no_update
 
@@ -928,6 +967,41 @@ def process_upload(contents, filename):
     }
     ts = f"Mis à jour : {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     return json.dumps(payload), ts, ""
+
+
+# 1b. Bandeau « mode démonstration »
+@app.callback(
+    Output("demo-banner", "children"),
+    Output("demo-banner", "style"),
+    Input("store-data", "data"),
+)
+def toggle_demo_banner(raw_data):
+    hidden = {"display": "none"}
+    if not raw_data:
+        return [], hidden
+    try:
+        is_demo = json.loads(raw_data).get("is_demo", False)
+    except Exception:
+        return [], hidden
+    if not is_demo:
+        return [], hidden
+
+    banner = html.Div([
+        html.Span("MODE DÉMONSTRATION",
+                  style={"fontWeight": "700", "letterSpacing": "1px",
+                         "fontSize": "11px", "color": "#0d1626",
+                         "background": "#c4a24a", "padding": "3px 8px",
+                         "borderRadius": "4px", "marginRight": "10px"}),
+        html.Span("Portefeuille fictif à des fins d'illustration — les cours et "
+                  "les indicateurs de marché sont réels, les transactions ne le sont pas. "
+                  "Importez votre fichier .xlsx pour analyser votre propre portefeuille.",
+                  style={"fontSize": "12px", "color": "#cbd5e1"}),
+    ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap",
+              "gap": "4px", "padding": "10px 14px", "marginBottom": "12px",
+              "background": "rgba(196,162,74,0.10)",
+              "border": "1px solid rgba(196,162,74,0.35)",
+              "borderRadius": "8px"})
+    return banner, {"display": "block"}
 
 
 # 2. Compute analytics from stored data
