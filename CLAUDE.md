@@ -18,7 +18,7 @@ python app.py
 **Run portfolio optimization (standalone, requires local Excel):**
 ```bash
 python Modelling_Portfolio.py
-# Hardcoded path in script: C:\Users\rmore\Desktop\Portfolio_Le_M.xlsm — update before running
+# Excel path: set env var PORTFOLIO_XLSM, or place Portfolio_Le_M.xlsm in the working directory
 ```
 
 There are no automated tests and no linting configuration.
@@ -101,4 +101,4 @@ The upload callback reads `sheet_name="BDD"` explicitly and attempts `sheet_name
 
 ## API Keys
 
-`Portfolio_functions.py` contains a hardcoded FMP API key (`information_portfolio()`). The dashboard (`app.py` + `engine.py`) does **not** use FMP — it relies solely on `yfinance` for market data.
+Keys are read from environment variables only — none are hardcoded. `Portfolio_functions.py` reads `FMP_API_KEY` (Financial Modeling Prep, `information_portfolio()`), and `macro_engine.py` reads `FRED_API_KEY`. The dashboard (`app.py` + `engine.py`) does **not** use FMP — it relies solely on `yfinance` for market data. See `.env.example`.

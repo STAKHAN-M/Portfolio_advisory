@@ -1,7 +1,8 @@
+import os
 import xlwings as xw
 import yfinance as yf
-import numpy as np 
-import pandas as pd 
+import numpy as np
+import pandas as pd
 import plotly.express as px
 from pypfopt import expected_returns, risk_models, EfficientFrontier
 import warnings
@@ -34,7 +35,10 @@ exp_return = 0.08
 # You must use Portfolio model 
 
 app = xw.App(visible=False)
-wb = xw.Book(r"C:\Users\rmore\Desktop\Portfolio_Le_M.xlsm")
+# Chemin du classeur Excel : défini via la variable d'environnement PORTFOLIO_XLSM,
+# sinon on cherche "Portfolio_Le_M.xlsm" dans le dossier courant.
+xlsm_path = os.environ.get("PORTFOLIO_XLSM", "Portfolio_Le_M.xlsm")
+wb = xw.Book(xlsm_path)
 
 # 1. ACTUAL PORTFOLIO
 # §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§

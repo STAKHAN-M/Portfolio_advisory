@@ -41,3 +41,6 @@ graphify-out/
 server_log.txt
 server_debug.txt
 *.log
+
+# ─── Artefact local graphify ───────────────────────────────
+.graphify_python

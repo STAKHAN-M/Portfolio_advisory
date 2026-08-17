@@ -40,7 +40,7 @@ The standalone modelling script requires a local Excel file (`Portfolio_Le_M.xls
 ```bash
 python Modelling_Portfolio.py
 ```
-*Note: Ensure the path to the Excel file in the script is correct for your local environment.*
+*Note: Set the `PORTFOLIO_XLSM` environment variable to your workbook path, or place `Portfolio_Le_M.xlsm` in the working directory.*
 
 ## Development Conventions
 
@@ -48,7 +48,7 @@ python Modelling_Portfolio.py
 - **Data Ingestion**: Transactions are parsed from Excel files with specific columns (Date, Ticker, Type, Quantite, Cash_Flow).
 - **Styling**: The dashboard uses `dash-bootstrap-components` and custom CSS in `assets/style.css`.
 - **Market Data**: Real-time and historical price data is fetched primarily using `yfinance`.
-- **API Integration**: Fundamental data is fetched from the Financial Modeling Prep API (requires an API key in `Portfolio_functions.py`).
+- **API Integration**: Fundamental data is fetched from the Financial Modeling Prep API. Keys are read from environment variables (`FMP_API_KEY`, `FRED_API_KEY`) — never hardcoded. See `.env.example`.
 
 ## Key Files
 
