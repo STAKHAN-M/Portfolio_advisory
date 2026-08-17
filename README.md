@@ -6,6 +6,33 @@ Tableau de bord interactif de **suivi et d'analyse de portefeuille boursier**, c
 
 ---
 
+## 🖼️ Aperçu
+
+> Les captures ci-dessous utilisent le **mode démonstration** : un portefeuille fictif avec des cours de marché réels. Aucune donnée personnelle.
+
+### Vue d'ensemble
+Valorisation, allocation, positions, performance vs CAC 40, indicateurs de risque, portefeuilles optimaux et simulateur d'achat.
+
+![Vue d'ensemble](docs/screenshots/01-vue-ensemble.png)
+
+### Historique du portefeuille
+Plus-values latentes des positions ouvertes, gains/pertes réalisés des positions clôturées, dividendes perçus par titre.
+
+![Historique du portefeuille](docs/screenshots/04-historique.png)
+
+### Performance historique
+Courbe du portefeuille vs CAC 40 (base 100) et détail mensuel.
+
+![Performance historique](docs/screenshots/03-performance.png)
+
+### Analyse par titre &nbsp;·&nbsp; Calculateur de position &nbsp;·&nbsp; Macroéconomie
+
+| Analyse par titre | Calculateur de position | Macroéconomie |
+|:---:|:---:|:---:|
+| ![Analyse par titre](docs/screenshots/02-analyse-titre.png) | ![Calculateur de position](docs/screenshots/05-calculateur.png) | ![Macroéconomie](docs/screenshots/06-macro.png) |
+
+---
+
 ## ✨ Fonctionnalités
 
 - **Vue d'ensemble** — valorisation, capital versé, cash, plus-values latentes, performance totale ; table des positions, répartition par titre et par catégorie.

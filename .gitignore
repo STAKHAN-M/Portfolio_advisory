@@ -31,6 +31,9 @@ Thumbs.db
 # ─── Artefacts navigateur / capture ────────────────────────
 .playwright-mcp/
 *.png
+# …sauf les captures d'écran du README (aucune donnée perso : portefeuille de démo)
+!docs/screenshots/
+!docs/screenshots/*.png
 
 # ─── Config locale Claude / IDE ────────────────────────────
 .claude/
