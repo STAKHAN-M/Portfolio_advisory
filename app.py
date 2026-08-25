@@ -168,9 +168,11 @@ TUTORIAL_STEPS = [
             html.P("Le fichier doit contenir une feuille « BDD » (Date, Type, Ticker, "
                    "Quantite, Prix_Unitaire, Montant_Total, Cash_Flow) et, en option, une "
                    "feuille « Valorisation »."),
-            html.Button("⤓  Télécharger le modèle Excel", id="download-template-btn-tuto",
-                        className="upload-btn", n_clicks=0,
-                        style={"cursor": "pointer", "marginBottom": "6px"}),
+            html.P([
+                "Pas encore de fichier ? Cliquez sur ",
+                html.B("« ⤓ Modèle Excel »"),
+                " dans la barre du haut pour télécharger un modèle pré-rempli.",
+            ], style={"color": "#c4a24a", "fontSize": "13px", "marginBottom": "6px"}),
             html.P("Aucune donnée n'est stockée sur le serveur — tout reste dans votre session.",
                    style={"color": "#7c93ad", "fontSize": "12px", "marginTop": "10px"}),
         ],
@@ -3507,13 +3509,11 @@ def toggle_indicator_modal(tile_clicks, close_clicks, data_json):
     Output("download-template", "data"),
     Input("download-template-btn", "n_clicks"),
     Input("download-template-btn-empty", "n_clicks"),
-    Input("download-template-btn-tuto", "n_clicks"),
     prevent_initial_call=True,
 )
-def download_template(n1, n2, n3):
+def download_template(n1, n2):
     ctx = callback_context
-    # Ne déclencher que sur un vrai clic (évite le faux déclenchement au montage
-    # dynamique du bouton dans le tutoriel, où n_clicks vaut 0)
+    # Ne déclencher que sur un vrai clic (n_clicks vaut 0 au montage initial)
     if not ctx.triggered or not ctx.triggered[0].get("value"):
         return no_update
 
