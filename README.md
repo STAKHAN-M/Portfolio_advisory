@@ -10,6 +10,10 @@ Tableau de bord interactif de **suivi et d'analyse de portefeuille boursier**, c
 
 > Les captures ci-dessous utilisent le **mode démonstration** : un portefeuille fictif avec des cours de marché réels. Aucune donnée personnelle.
 
+### Tour rapide
+
+![Démonstration animée du dashboard](docs/screenshots/demo.gif)
+
 ### Vue d'ensemble
 Valorisation, allocation, positions, performance vs CAC 40, indicateurs de risque, portefeuilles optimaux et simulateur d'achat.
 
